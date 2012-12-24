@@ -1348,7 +1348,7 @@ lmdup() {
           eout "{update} latest version already installed." 1
         fi
       else
-        eout "{update} latest version already installed." 1
+        eout "{update} latest version already installed, but could not download current hash to check." 1
       fi
     fi
   else
