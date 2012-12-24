@@ -1360,6 +1360,89 @@ lmdup() {
   rm -rf $tmp_inspath $ofile $ofile_hash
 }
 
+wt_sigup() {
+  eout "{wt_sigup} performing signature update check..." 1
+  if [ -z "$wt_def_ver" ]; then
+    eout "{wt_sigup} could not determine signature version" 1
+    def_ver=0
+  else
+    eout "{wt_sigup} local signature set is version $wt_def_ver" 1
+  fi
+
+  if [ ! -f "$wget" ]; then
+    eout "{wt_sigup} could not locate wget command" 1
+    exit
+  fi
+
+  tmpf="$tmpdir/.hver$$"
+  $wget --referer="http://www.etcet.net/LMD-$ver-wt-$wtver" -t5 -T5 -q $defurl_ver -O $tmpf
+  if [ ! -f "$tmpf" ]; then
+    eout "{wt_sigup} could not download signature data from server, please try again later." 1
+    exit
+  fi
+  if [ -z $(cat $tmpf) ]; then
+    eout "{wt_sigup} could not download signature data from server, please try again later." 1
+    exit
+  fi
+
+  nver=`cat $tmpf`
+
+  if [ -f "$dat_md5hash" ]; then
+    lines_md5=`cat $dat_md5hash | $wc -l | awk '{print$1}'`
+  else
+    lines_md5=0
+  fi
+  if [ -f "$dat_hexstring" ]; then
+    lines_hex=`cat $dat_hexstring | $wc -l | awk '{print$1}'`
+  else
+    lines_hex="0"
+  fi
+
+  if [ ! -f "$dat_md5hash" ] || [ ! -f "$dat_hexstring" ]; then
+    def_ver=2011041200000
+    eout "{wt_sigup} signature files missing or corrupted, forcing update..." 1
+  elif [ "$lines_md5" -lt "1000" ] || [ "$lines_hex" -lt "1000" ]; then
+    def_ver=2011041200000
+    eout "{wt_sigup} signature files corrupted, forcing update..." 1
+  fi
+
+  if [ "$nver" != "$def_ver" ]; then
+    eout "{wt_sigup} new signature set ($nver) available" 1
+
+    $wget --referer="http://www.rfxn.com/LMD-$ver" -t5 -T5 -q $defurl_md5hash -O $dat_md5hash
+    eout "{wt_sigup} downloaded $defurl_md5hash" 1
+
+    $wget --referer="http://www.rfxn.com/LMD-$ver" -t5 -T5 -q $defurl_hex -O $dat_hexstring
+    eout "{wt_sigup} downloaded $defurl_hex" 1
+
+    $wget --referer="http://www.rfxn.com/LMD-$ver" -t5 -T5 -q $defurl_hex_cav -O $dat_hex_cav
+    eout "{wt_sigup} downloaded $defurl_hex_cav" 1
+
+    $wget --referer="http://www.rfxn.com/LMD-$ver" -t5 -T5 -q $defurl_md5_cav -O $dat_md5_cav
+    eout "{wt_sigup} downloaded $defurl_md5_cav" 1
+
+    $wget --referer="http://www.rfxn.com/LMD-$ver" -t5 -T5 -q $defurl_cl -O $tmpdir/maldet-clean.tgz
+    cd $tmpdir/
+    tar xfz $tmpdir/maldet-clean.tgz
+    cp -f $tmpdir/clean/* $cldir
+    rm -rf $tmpdir/maldet-clean.tgz $tmpdir/clean
+    eout "{wt_sigup} downloaded $defurl_cl" 1
+
+    cat $tmpf > $def_verf
+    eout "{wt_sigup} signature set update completed" 1
+    sigignore
+    hex_sigs=`$wc -l $dat_hexstring | awk '{print$1}'`
+    md5_sigs=`$wc -l $dat_md5hash | awk '{print$1}'`
+    tot_sigs=$[md5_sigs+hex_sigs]
+    eout "{wt_sigup} $tot_sigs signatures ($md5_sigs MD5 / $hex_sigs HEX)" 1
+
+  else
+    eout "{wt_sigup} latest signature set already installed" 1
+  fi
+
+  rm -f $tmpf
+}
+
 sigup() {
   eout "{sigup} performing signature update check..." 1
   if [ -z "$def_ver" ]; then
@@ -1605,6 +1688,7 @@ else
           header
         fi
         sigup
+        wt_sigup
         ;;
       -s|--restore)
         header
