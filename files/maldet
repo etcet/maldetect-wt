@@ -11,15 +11,16 @@
 #
 
 ver=1.4.1
-wtver=wt-0
+wtver=0
 
-inspath=/usr/local/maldetect
+#inspath=/usr/local/maldetect
+inspath=/home/cjames/work/maldetect-wt/files
 cnf=$inspath/conf.maldet
 intcnf=$inspath/internals.conf
 datestamp=`date +"%m%d%y-%H%M"`
 
 header() {
-  echo "Linux Malware Detect v$ver-$wtver"
+  echo "Linux Malware Detect v$ver-wt-$wtver"
   echo "            (C) 2013, Chris James <chris@wiredtree.com>"
   echo "            (C) 2002-2011, R-fx Networks <proj@r-fx.org>"
   echo "            (C) 2011, Ryan MacDonald <ryan@r-fx.org>"
@@ -840,7 +841,7 @@ EOF
     fi
     cat >> $nsess <<EOF
 ===============================================
-Linux Malware Detect v$ver-$wtver < proj@rfxn.com >
+Linux Malware Detect v$ver-wt-$wtver < proj@rfxn.com >
 EOF
   fi
 }
@@ -934,7 +935,7 @@ EOF
 FILE HIT LIST:
 $(cat $tmpdir/.daily.alert.hits)
 ===============================================
-Linux Malware Detect v$ver-$wtver < proj@rfxn.com >
+Linux Malware Detect v$ver-wt-$wtver < proj@rfxn.com >
 EOF
         cp $tmpf $sessdir/session.$datestamp.$$
         echo "$datestamp.$$" > $sessdir/session.last
@@ -1003,7 +1004,7 @@ EOF
 FILE HIT LIST:
 $(cat $tmpdir/.weekly.alert.hits)
 ===============================================
-Linux Malware Detect v$ver-$wtver < proj@rfxn.com >
+Linux Malware Detect v$ver-wt-$wtver < proj@rfxn.com >
 EOF
         echo "$datestamp.$$" > $sessdir/session.last
         cp $tmpf $sessdir/session.$datestamp.$$
@@ -1299,49 +1300,49 @@ lmdup() {
 
   eout "{update} checking for available updates..." 1
 
-  $wget --referer="http://www.rfxn.com/LMD-$ver" -q -t5 -T5 "$lmdurl_ver" -O $ofile >> /dev/null 2>&1
+  $wget --referer="http://www.etcet.net/LMD-$ver-wt-$wtver" -q -t5 -T5 "$wt_lmdurl_ver" -O $ofile >> /dev/null 2>&1
   if [ -s "$ofile" ]; then
-    installed_ver=`echo $ver | tr -d '.'`
-    current_ver=`cat $ofile | tr -d '.'`
+    installed_ver=`echo $ver$wtver | tr -d '.'`
+    current_ver=`cat $ofile | sed 's/-wt-//' | tr -d '.'`
     current_hver=`cat $ofile`
     if [ "$current_ver" -gt "$installed_ver" ]; then
       eout "{update} new version $current_hver found, updating..." 1
-      $wget --referer="http://www.rfxn.com/LMD-$ver" -q -t5 -T5 "http://www.rfxn.com/downloads/maldetect-current.tar.gz" -O "$tmp_inspath/maldetect-current.tar.gz"
-      if [ -f "$tmp_inspath/maldetect-current.tar.gz" ]; then
+      $wget --referer="http://www.etcet.net/LMD-$ver-wt-$wtver" -q -t5 -T5 "http://www.etcet.net/maldetect/maldetect-wt-current.tar.gz" -O "$tmp_inspath/maldetect-wt-current.tar.gz"
+      if [ -f "$tmp_inspath/maldetect-wt-current.tar.gz" ]; then
         cd $tmp_inspath/
-        tar xfz maldetect-current.tar.gz
+        tar xfz maldetect-wt-current.tar.gz
         cd maldetect-*
         chmod 750 install.sh
         sh -c './install.sh' >> /dev/null 2>&1
-        eout "{update} completed update v$ver => v$current_hver, running signature updates..." 1
+        eout "{update} completed update v$ver-wt-$wtver => v$current_hver, running signature updates..." 1
         $inspath/maldet --update 1
         eout "{update} update and config import completed." 1
       else
-        eout "{update} could not download maldetect-current.tar.gz, please try again later." 1
+        eout "{update} could not download maldetect-wt-current.tar.gz, please try again later." 1
         exit
       fi
     else
       eout "{update} hashing install files and checking against server..." 1
       md5sum $inspath/maldet $inspath/internals.conf $inspath/inotify/tlog $inspath/inotify/inotifywait $inspath/clean/* | awk '{print$1}' | tr '\n' ' ' | tr -d ' ' > $lmd_hashf
       ofile_hash=$tmpdir/.lmdup_hashcheck
-      $wget --referer="http://www.etcet.net/LMD-$ver-$wtver" -q -t5 -T5 "$wt_lmdurl_hash" -O $ofile_hash >> /dev/null 2>&1
+      $wget --referer="http://www.etcet.net/LMD-$ver-wt-$wtver" -q -t5 -T5 "$wt_lmdurl_hash" -O $ofile_hash >> /dev/null 2>&1
       if [ -f "$ofile_hash" ]; then
         installed_hash=`cat $lmd_hashf`
         current_hash=`cat $ofile_hash`
         if [ ! "$installed_hash" == "$current_hash" ]; then
           eout "{update} version check shows latest but hash check failed, forcing update..." 1
-          $wget --referer="http://www.rfxn.com/LMD-$ver" -q -t5 -T5 "http://www.rfxn.com/downloads/maldetect-current.tar.gz" -O "$tmp_inspath/maldetect-current.tar.gz"
-          if [ -f "$tmp_inspath/maldetect-current.tar.gz" ]; then
+          $wget --referer="http://www.etcet.net/LMD-$ver-wt-$wtver" -q -t5 -T5 "http://www.etcet.net/maldetect/maldetect-wt-current.tar.gz" -O "$tmp_inspath/maldetect-wt-current.tar.gz"
+          if [ -f "$tmp_inspath/maldetect-wt-current.tar.gz" ]; then
             cd $tmp_inspath/
-            tar xfz maldetect-current.tar.gz
+            tar xfz maldetect-wt-current.tar.gz
             cd maldetect-*
             chmod 750 install.sh
             sh -c './install.sh' >> /dev/null 2>&1
-            eout "{update} completed update v$ver => v$current_hver, running signature updates..." 1
+            eout "{update} completed update v$ver-wt-$wtver => v$current_hver, running signature updates..." 1
             $inspath/maldet --update 1
             eout "{update} update and config import completed." 1
           else
-            eout "{update} could not download maldetect-current.tar.gz, please try again later." 1
+            eout "{update} could not download maldetect-wt-current.tar.gz, please try again later." 1
             exit
           fi
         else
