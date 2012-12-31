@@ -1271,6 +1271,53 @@ EOT
 
 }
 
+wt_checkout() { 
+  file="$1"
+  host=ftp.etcet.net
+  user=anonymous
+  passwd=anonymous
+  upath=incoming
+
+  cfile="$(pwd)/$file"
+  if [ -f "$cfile" ]; then
+    file=$cfile
+  fi
+
+  if [ -f "$file" ]; then
+
+    eout "{checkout} uploading $file to $host" 1
+
+    ftp -v -n -i $host << EOT
+user $user@etcet.net $passwd
+prompt
+cd $upath
+lcd $lcd
+binary
+put "$file" "$RANDOM.$$.bin"
+ascii
+put "$file" "$RANDOM.$$.ascii"
+bye
+EOT
+
+  elif [ -d "$file" ]; then
+    for i in `find $file -type f`; do
+      ftp -v -n -i $host << EOT
+user $user $passwd
+prompt
+cd $upath
+lcd $lcd
+binary
+put "$i" "$RANDOM.$$.bin"
+ascii
+put "$i" "$RANDOM.$$.ascii"
+bye
+EOT
+    done
+  fi
+
+
+}
+
 sigignore() {
   sil=$1
   chk=`$wc -l $ignore_sigs | awk '{print$1}'`
@@ -1375,7 +1422,7 @@ wt_sigup() {
   fi
 
   tmpf="$tmpdir/.hver$$"
-  $wget --referer="http://www.etcet.net/LMD-$ver-wt-$wtver" -t5 -T5 -q $defurl_ver -O $tmpf
+  $wget --referer="http://www.etcet.net/LMD-$ver-wt-$wtver" -t5 -T5 -q $wt_defurl_ver -O $tmpf
   if [ ! -f "$tmpf" ]; then
     eout "{wt_sigup} could not download signature data from server, please try again later." 1
     exit
@@ -1409,30 +1456,30 @@ wt_sigup() {
   if [ "$nver" != "$def_ver" ]; then
     eout "{wt_sigup} new signature set ($nver) available" 1
 
-    $wget --referer="http://www.rfxn.com/LMD-$ver" -t5 -T5 -q $defurl_md5hash -O $dat_md5hash
-    eout "{wt_sigup} downloaded $defurl_md5hash" 1
+    $wget --referer="http://www.etcet.net/LMD-$ver-wt-$wtver" -t5 -T5 -q $wt_defurl_md5hash -O $wt_dat_md5hash
+    eout "{wt_sigup} downloaded $wt_defurl_md5hash" 1
 
-    $wget --referer="http://www.rfxn.com/LMD-$ver" -t5 -T5 -q $defurl_hex -O $dat_hexstring
-    eout "{wt_sigup} downloaded $defurl_hex" 1
+    $wget --referer="http://www.etcet.net/LMD-$ver-wt-$wtver" -t5 -T5 -q $wt_defurl_hex -O $wt_dat_hexstring
+    eout "{wt_sigup} downloaded $wt_defurl_hex" 1
 
-    $wget --referer="http://www.rfxn.com/LMD-$ver" -t5 -T5 -q $defurl_hex_cav -O $dat_hex_cav
-    eout "{wt_sigup} downloaded $defurl_hex_cav" 1
+    $wget --referer="http://www.etcet.net/LMD-$ver-wt-$wtver" -t5 -T5 -q $wt_defurl_hex_cav -O $wt_dat_hex_cav
+    eout "{wt_sigup} downloaded $wt_defurl_hex_cav" 1
 
-    $wget --referer="http://www.rfxn.com/LMD-$ver" -t5 -T5 -q $defurl_md5_cav -O $dat_md5_cav
-    eout "{wt_sigup} downloaded $defurl_md5_cav" 1
+    $wget --referer="http://www.etcet.net/LMD-$ver-wt-$wtver" -t5 -T5 -q $wt_defurl_md5_cav -O $wt_dat_md5_cav
+    eout "{wt_sigup} downloaded $wt_defurl_md5_cav" 1
 
-    $wget --referer="http://www.rfxn.com/LMD-$ver" -t5 -T5 -q $defurl_cl -O $tmpdir/maldet-clean.tgz
+    $wget --referer="http://www.etcet.net/LMD-$ver-wt-$wtver" -t5 -T5 -q $wt_defurl_cl -O $tmpdir/maldet-wt-clean.tgz
     cd $tmpdir/
-    tar xfz $tmpdir/maldet-clean.tgz
-    cp -f $tmpdir/clean/* $cldir
-    rm -rf $tmpdir/maldet-clean.tgz $tmpdir/clean
-    eout "{wt_sigup} downloaded $defurl_cl" 1
+    tar xfz $tmpdir/maldet-wt-clean.tgz
+    cp -f $tmpdir/wt-clean/* $cldir
+    rm -rf $tmpdir/maldet-wt-clean.tgz $tmpdir/clean-wt
+    eout "{wt_sigup} downloaded $wt_defurl_cl" 1
 
-    cat $tmpf > $def_verf
+    cat $tmpf > $wt_def_verf
     eout "{wt_sigup} signature set update completed" 1
     sigignore
-    hex_sigs=`$wc -l $dat_hexstring | awk '{print$1}'`
-    md5_sigs=`$wc -l $dat_md5hash | awk '{print$1}'`
+    hex_sigs=`$wc -l $wt_dat_hexstring | awk '{print$1}'`
+    md5_sigs=`$wc -l $wt_dat_md5hash | awk '{print$1}'`
     tot_sigs=$[md5_sigs+hex_sigs]
     eout "{wt_sigup} $tot_sigs signatures ($md5_sigs MD5 / $hex_sigs HEX)" 1
 
@@ -1598,6 +1645,7 @@ else
         shift
         header
         checkout "$1"
+        wt_checkout "$1"
         ;;
       --alert-daily)
         alert daily
